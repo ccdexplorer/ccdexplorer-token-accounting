@@ -1,0 +1,11 @@
+/.venv
+
+.env
+/test_blocks_transactions.py
+.DS_Store
+settings.json
+launch.json
+*.pyc
+/site
+/one-off
+
