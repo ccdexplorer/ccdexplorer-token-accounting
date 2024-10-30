@@ -36,6 +36,7 @@ class Heartbeat(_token_accounting):
         self.mongodb = mongodb
         self.motormongo = motormongo
         self.net = net
+        self.address_to_follow = None
         self.utilities: dict[Collections, Collection] = self.mongodb.utilities
         self.db: dict[Collections, Collection] = (
             self.mongodb.mainnet if self.net == "mainnet" else self.mongodb.testnet
