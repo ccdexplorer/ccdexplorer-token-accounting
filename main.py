@@ -1,4 +1,3 @@
-import asyncio
 import atexit
 
 import urllib3
@@ -9,9 +8,10 @@ from ccdexplorer_fundamentals.mongodb import (
 )
 from ccdexplorer_fundamentals.tooter import Tooter
 from rich.console import Console
-
+from scheduler.asyncio import Scheduler
 from env import RUN_ON_NET
 from heartbeat import Heartbeat
+import datetime as dt
 
 urllib3.disable_warnings()
 
@@ -26,17 +26,18 @@ motormongo = MongoMotor(tooter)
 def main():
     """ """
     console.log(f"{RUN_ON_NET=}")
+    schedule = Scheduler()
 
     heartbeat = Heartbeat(grpcclient, tooter, mongodb, motormongo, RUN_ON_NET)
     atexit.register(heartbeat.exit)
 
-    loop = asyncio.get_event_loop()
+    # loop = asyncio.get_event_loop()
 
-    loop.create_task(heartbeat.update_token_accounting())
-    loop.create_task(heartbeat.get_redo_token_addresses())
-    loop.create_task(heartbeat.special_purpose_token_accounting())
-
-    loop.run_forever()
+    schedule.cyclic(dt.timedelta(seconds=1), heartbeat.update_token_accounting)
+    schedule.cyclic(dt.timedelta(seconds=10), heartbeat.get_redo_token_addresses)
+    schedule.cyclic(
+        dt.timedelta(seconds=10), heartbeat.special_purpose_token_accounting
+    )
 
 
 if __name__ == "__main__":
