@@ -1,5 +1,5 @@
 import atexit
-
+import asyncio
 import urllib3
 from ccdexplorer_fundamentals.GRPCClient import GRPCClient
 from ccdexplorer_fundamentals.mongodb import (
@@ -23,10 +23,11 @@ mongodb = MongoDB(tooter)
 motormongo = MongoMotor(tooter)
 
 
-def main():
+async def main():
     """ """
     console.log(f"{RUN_ON_NET=}")
-    schedule = Scheduler()
+    loop = asyncio.get_running_loop()
+    schedule = Scheduler(loop=loop)
 
     heartbeat = Heartbeat(grpcclient, tooter, mongodb, motormongo, RUN_ON_NET)
     atexit.register(heartbeat.exit)
@@ -38,10 +39,9 @@ def main():
     schedule.cyclic(
         dt.timedelta(seconds=10), heartbeat.special_purpose_token_accounting
     )
+    while True:
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as f:
-        console.log("main error: ", f)
+    asyncio.run(main())
