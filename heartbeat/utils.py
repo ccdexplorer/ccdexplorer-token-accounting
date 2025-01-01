@@ -20,11 +20,11 @@ class Queue(Enum):
 class Utils:
 
     def log_last_token_accounted_message_in_mongo(self, height: int):
-        query = {"_id": "token_accounting_last_processed_block_v2"}
+        query = {"_id": "token_accounting_last_processed_block_v3"}
         self.db[Collections.helpers].replace_one(
             query,
             {
-                "_id": "token_accounting_last_processed_block_v2",
+                "_id": "token_accounting_last_processed_block_v3",
                 "height": height,
             },
             upsert=True,
