@@ -28,17 +28,15 @@ async def main():
     console.log(f"{RUN_ON_NET=}")
     loop = asyncio.get_running_loop()
     schedule = Scheduler(loop=loop)
+    # schedule = Scheduler()
 
     heartbeat = Heartbeat(grpcclient, tooter, mongodb, motormongo, RUN_ON_NET)
     atexit.register(heartbeat.exit)
 
     # loop = asyncio.get_event_loop()
 
-    schedule.cyclic(dt.timedelta(seconds=1), heartbeat.update_token_accounting)
-    schedule.cyclic(dt.timedelta(seconds=10), heartbeat.get_redo_token_addresses)
-    schedule.cyclic(
-        dt.timedelta(seconds=10), heartbeat.special_purpose_token_accounting
-    )
+    schedule.cyclic(dt.timedelta(seconds=1), heartbeat.update_token_accounting_v2)
+
     while True:
         await asyncio.sleep(1)
 

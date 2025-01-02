@@ -15,14 +15,15 @@ from rich.console import Console
 
 from env import COIN_API_KEY
 
-from .token_accounting import TokenAccounting as _token_accounting
+# from .token_accounting import TokenAccounting as _token_accounting
+from .token_accounting_v2 import TokenAccountingV2 as _token_accounting_v2
 from .utils import Queue
 
 urllib3.disable_warnings()
 console = Console()
 
 
-class Heartbeat(_token_accounting):
+class Heartbeat(_token_accounting_v2):
     def __init__(
         self,
         grpcclient: GRPCClient,
@@ -37,6 +38,7 @@ class Heartbeat(_token_accounting):
         self.motormongo = motormongo
         self.net = net
         self.address_to_follow = None
+        self.sending = False
         self.utilities: dict[Collections, Collection] = self.mongodb.utilities
         self.db: dict[Collections, Collection] = (
             self.mongodb.mainnet if self.net == "mainnet" else self.mongodb.testnet

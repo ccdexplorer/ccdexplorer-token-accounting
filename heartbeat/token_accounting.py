@@ -44,6 +44,9 @@ class TokenAccounting(Utils):
         """
         self.db: dict[Collections, Collection]
         try:
+            while self.sending:
+                await asyncio.sleep(0.3)
+                print("waiting for sending to finish")
             start = dt.datetime.now()
             # Read token_accounting_last_processed_block
             result = self.db[Collections.helpers].find_one(
@@ -175,183 +178,27 @@ class TokenAccounting(Utils):
 
     def send_token_queues_to_mongo(self, limit: int = 0):
         self.queues: dict[Collections, list]
+        self.sending = True
         if len(self.queues[Queue.token_addresses]) > limit:
-            result = self.db[Collections.tokens_token_addresses_v3].bulk_write(
+            result1 = self.db[Collections.tokens_token_addresses_v3].bulk_write(
                 self.queues[Queue.token_addresses]
             )
             console.log(
-                f"TA:  {len(self.queues[Queue.token_addresses]):5,.0f} | M {result.matched_count:5,.0f} | Mod {result.modified_count:5,.0f} | U {result.upserted_count:5,.0f}"
+                f"TA:  {len(self.queues[Queue.token_addresses]):5,.0f} | M {result1.matched_count:5,.0f} | Mod {result1.modified_count:5,.0f} | U {result1.upserted_count:5,.0f}"
             )
-            # console.log(
-            #     f"Updated accounting for {len(self.queues[Queue.token_addresses])} token addresses."
-            # )
 
             self.queues[Queue.token_addresses] = []
 
         if len(self.queues[Queue.token_links]) > limit:
-            result = self.db[Collections.tokens_links_v3].bulk_write(
+            result2 = self.db[Collections.tokens_links_v3].bulk_write(
                 self.queues[Queue.token_links]
             )
             console.log(
-                f"TL:  {len(self.queues[Queue.token_links]):5,.0f} | M {result.matched_count:5,.0f} | Mod {result.modified_count:5,.0f} | U {result.upserted_count:5,.0f}"
+                f"TL:  {len(self.queues[Queue.token_links]):5,.0f} | M {result2.matched_count:5,.0f} | Mod {result2.modified_count:5,.0f} | U {result2.upserted_count:5,.0f}"
             )
-            # console.log(
-            #     f"Updated accounting for {len(self.queues[Queue.token_links])} token links."
-            # )
 
             self.queues[Queue.token_links] = []
-
-    # async def special_purpose_token_accounting(self):
-    #     """
-    #     This method looks at all token_addresses and then inspects the
-    #     last_height_processed property. If it's set to -1, this means
-    #     we need to redo token accounting for this token_address.
-    #     It's set to -1 if a special purpose block with cis events is
-    #     detected.
-    #     """
-
-    #     try:
-    #         token_addresses_to_process = [
-    #             x["_id"]
-    #             for x in self.db[Collections.tokens_token_addresses_v2].find(
-    #                 {"last_height_processed": -1}, {"_id": 1}
-    #             )
-    #         ]
-
-    #         # token_addresses_to_process = [x.id for x in result]
-
-    #         # Logged events are ordered by block_height, then by
-    #         # transaction index (tx_index) and finally by event index
-    #         # (ordering).
-    #         for token_address in token_addresses_to_process:
-    #             events_for_token_address = [
-    #                 MongoTypeLoggedEvent(**x)
-    #                 for x in self.db[Collections.tokens_logged_events]
-    #                 .find({"token_address": token_address})
-    #                 .sort(
-    #                     [
-    #                         ("block_height", ASCENDING),
-    #                         ("tx_index", ASCENDING),
-    #                         ("ordering", ASCENDING),
-    #                     ]
-    #                 )
-    #             ]
-    #             events_by_token_address = {}
-    #             events_by_token_address[token_address] = events_for_token_address
-    #             # Only continue if there are logged events to process...
-    #             if len(events_for_token_address) > 0:
-    #                 # When all logged events are processed,
-    #                 # 'token_accounting_last_processed_block' is set to
-    #                 # 'token_accounting_last_processed_block_when_done'
-    #                 # such that next iteration, we will not be re-processing
-    #                 # logged events we already have processed.
-    #                 # token_accounting_last_processed_block_when_done = max(
-    #                 #     [x.block_height for x in events_for_token_address]
-    #                 # )
-
-    #                 console.log(
-    #                     f"Token accounting for Special purpose: Redo {token_address} with {len(events_for_token_address):,.0f} logged events on {self.net}."
-    #                 )
-
-    #                 # Retrieve the token_addresses for all from the collection
-    #                 token_addresses_as_class_from_collection = {
-    #                     x["_id"]: MongoTypeTokenAddress(**x)
-    #                     for x in self.db[Collections.tokens_token_addresses_v2].find(
-    #                         {"_id": {"$in": list(events_by_token_address.keys())}}
-    #                     )
-    #                 }
-    #                 # Retrieve all current links for this set of token_addresses.
-    #                 token_links_from_collection_result = list(
-    #                     self.db[Collections.tokens_links_v2].find(
-    #                         {
-    #                             "token_holding.token_address": {
-    #                                 "$in": list(events_by_token_address.keys())
-    #                             }
-    #                         }
-    #                     )
-    #                 )
-    #                 token_links_from_collection_by_token_address = {}
-    #                 for link in token_links_from_collection_result:
-    #                     link_token_address = link["token_holding"]["token_address"]
-    #                     link_account_address = link["account_address"]
-    #                     if not token_links_from_collection_by_token_address.get(
-    #                         link_token_address
-    #                     ):
-    #                         token_links_from_collection_by_token_address[
-    #                             link_token_address
-    #                         ] = {}
-
-    #                     # Double dict, so first lookup token address, then account address.
-    #                     token_links_from_collection_by_token_address[
-    #                         link_token_address
-    #                     ][link_account_address] = MongoTypeTokenLink(**link)
-
-    #                 # token_accounts_from_collection = {
-    #                 #     x["_id"]: MongoTypeTokenHolderAddress(**x)
-    #                 #     for x in self.db[Collections.tokens_accounts].find({})
-    #                 # }
-    #                 # Looping through all token_addresses that have logged_events
-    #                 # for log in events_for_token_address:
-    #                 self.token_accounting_for_token_address(
-    #                     token_address,
-    #                     events_by_token_address,
-    #                     token_addresses_as_class_from_collection,
-    #                     token_links_from_collection_by_token_address,
-    #                     -1,
-    #                 )
-
-    #             self.send_token_queues_to_mongo(0)
-
-    #     except Exception as e:
-    #         console.log(e)
-
-    #         # await asyncio.sleep(10)
-
-    # async def get_redo_token_addresses(self):
-    #     """
-    #     This methods gets token_addresses that need to have their
-    #     token accounting redone.
-    #     """
-    #     # while True:
-    #     result = self.db[Collections.helpers].find_one({"_id": "redo_token_addresses"})
-    #     if result:
-    #         # this is the address we are going to print account statements from during the token accounting
-    #         # useful to redo a token address and see the impact on this account
-    #         self.address_to_follow = result.get("address_to_follow")
-
-    #         # looping over all token addresses we have listed in the helper to redo.
-    #         for token_address in result["token_addresses"]:
-    #             request_result = self.db[
-    #                 Collections.tokens_token_addresses_v2
-    #             ].find_one({"_id": token_address})
-    #             if request_result:
-    #                 token_address_as_class = MongoTypeTokenAddress(**request_result)
-    #             else:
-    #                 token_address_as_class = self.create_new_token_address(
-    #                     token_address
-    #                 )
-    #             # update the last_height_processed to -1, this will trigger
-    #             # a redo of the token accounting.
-    #             token_address_as_class.last_height_processed = -1
-
-    #             # Write the token_address_as_class back to the collection.
-    #             _ = self.db[Collections.tokens_token_addresses_v2].bulk_write(
-    #                 [self.mongo_save_for_token_address(token_address_as_class)]
-    #             )
-
-    #         _ = self.db[Collections.helpers].bulk_write(
-    #             [
-    #                 ReplaceOne(
-    #                     {"_id": "redo_token_addresses"},
-    #                     replacement={
-    #                         "token_addresses": [],
-    #                         "address_to_follow": result.get("address_to_follow"),
-    #                     },
-    #                     upsert=True,
-    #                 )
-    #             ]
-    #         )
-    #     # await asyncio.sleep(10)
+        self.sending = False
 
     def token_accounting_for_token_address(
         self,
