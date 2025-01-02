@@ -1,32 +1,20 @@
 import asyncio
-import datetime as dt
-from datetime import timezone
 
-import aiohttp
 from ccdexplorer_fundamentals.cis import (
     MongoTypeLoggedEventV2,
-    FailedAttempt,
-    # MongoTypeLoggedEvent,
     MongoTypeTokenAddress,
     MongoTypeTokenAddressV2,
     MongoTypeTokenForAddress,
-    MongoTypeTokenHolderAddress,
     MongoTypeTokenLink,
-    TokenMetaData,
-    burnEvent,
-    mintEvent,
-    tokenMetadataEvent,
-    transferEvent,
 )
-from ccdexplorer_fundamentals.GRPCClient.CCD_Types import CCD_AccountAddress
 from ccdexplorer_fundamentals.mongodb import (
     Collections,
 )
-from pymongo import ASCENDING, DeleteOne, ReplaceOne
+from pymongo import ASCENDING, ReplaceOne
 from pymongo.collection import Collection
 from rich.console import Console
 
-from .utils import Queue, Utils
+from .utils import Utils
 
 console = Console()
 
@@ -48,7 +36,6 @@ class TokenAccountingV2(Utils):
         while self.sending:
             await asyncio.sleep(0.3)
             print("waiting for sending to finish")
-        start = dt.datetime.now()
         # Read token_accounting_last_processed_block
         result = self.db[Collections.helpers].find_one(
             {"_id": "token_accounting_last_processed_block_v3"}
@@ -80,7 +67,7 @@ class TokenAccountingV2(Utils):
                     "tx_info.block_height": ASCENDING,
                 }
             },
-            {"$limit": 100_000},
+            {"$limit": 1_000},
         ]
         result: list[MongoTypeLoggedEventV2] = [
             MongoTypeLoggedEventV2(**x)
@@ -175,6 +162,9 @@ class TokenAccountingV2(Utils):
                     # save_token_address = True
 
                 for address in list(set(addresses_to_save)):
+                    if address is None:
+                        continue
+
                     _id = f"{contract_}-{token_id_}-{address}"
                     token_holding = MongoTypeTokenForAddress(
                         **{
@@ -232,7 +222,6 @@ class TokenAccountingV2(Utils):
             self.log_last_token_accounted_message_in_mongo(
                 token_accounting_last_processed_block_when_done
             )
-            end = dt.datetime.now()
 
     def create_new_token_address_v2(
         self, token_address: str, height: int
