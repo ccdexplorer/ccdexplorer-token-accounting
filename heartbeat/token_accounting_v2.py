@@ -5,7 +5,6 @@ from datetime import timezone
 import aiohttp
 from ccdexplorer_fundamentals.cis import (
     MongoTypeLoggedEventV2,
-    MongoTypeTokenLinkV2,
     FailedAttempt,
     # MongoTypeLoggedEvent,
     MongoTypeTokenAddress,
