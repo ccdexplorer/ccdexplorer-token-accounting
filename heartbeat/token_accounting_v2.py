@@ -208,6 +208,8 @@ class TokenAccountingV2(Utils):
                         upsert=True,
                     )
                 )
+                if "failed_attempt" in repl_dict:
+                    del repl_dict["failed_attempt"]
                 self.mqtt.publish(
                     f"ccdexplorer/{self.net}/metadata/fetch",
                     json.dumps(repl_dict),
