@@ -1,5 +1,7 @@
 import asyncio
+import json
 
+import paho.mqtt.client as mqtt
 from ccdexplorer_fundamentals.cis import (
     MongoTypeLoggedEventV2,
     MongoTypeTokenAddress,
@@ -13,6 +15,8 @@ from ccdexplorer_fundamentals.mongodb import (
 from pymongo import ASCENDING, ReplaceOne
 from pymongo.collection import Collection
 from rich.console import Console
+
+from env import MQTT_QOS
 
 from .utils import Utils
 
@@ -32,6 +36,7 @@ class TokenAccountingV2(Utils):
         token_accounts) will be reset.
         """
         self.db: dict[Collections, Collection]
+        self.mqtt: mqtt.Client
         # try:
         while self.sending:
             await asyncio.sleep(0.3)
@@ -202,6 +207,11 @@ class TokenAccountingV2(Utils):
                         replacement=repl_dict,
                         upsert=True,
                     )
+                )
+                self.mqtt.publish(
+                    f"ccdexplorer/{self.net}/metadata/fetch",
+                    json.dumps(repl_dict),
+                    qos=MQTT_QOS,
                 )
 
             if len(links_to_save) > 0:

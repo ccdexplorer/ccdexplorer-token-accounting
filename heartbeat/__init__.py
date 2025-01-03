@@ -12,7 +12,7 @@ from ccdexplorer_fundamentals.mongodb import (
 from ccdexplorer_fundamentals.tooter import Tooter
 from pymongo.collection import Collection
 from rich.console import Console
-
+import paho.mqtt.client as mqtt
 from env import COIN_API_KEY
 
 # from .token_accounting import TokenAccounting as _token_accounting
@@ -30,6 +30,7 @@ class Heartbeat(_token_accounting_v2):
         tooter: Tooter,
         mongodb: MongoDB,
         motormongo: MongoMotor,
+        mqtt: mqtt.Client,
         net: str,
     ):
         self.grpcclient = grpcclient
@@ -37,6 +38,7 @@ class Heartbeat(_token_accounting_v2):
         self.mongodb = mongodb
         self.motormongo = motormongo
         self.net = net
+        self.mqtt = mqtt
         self.address_to_follow = None
         self.sending = False
         self.utilities: dict[Collections, Collection] = self.mongodb.utilities

@@ -9,3 +9,4 @@ chardet
 pytest
 python-dotenv
 scheduler
+paho-mqtt
